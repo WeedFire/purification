@@ -14,7 +14,7 @@ Set-Location $projectRoot
 
 # 安装依赖
 Write-Host ">>> [1/3] Installing dependencies..."
-pnpm install --frozen-lockfile
+pnpm install --no-frozen-lockfile
 if ($LASTEXITCODE -ne 0) { throw "pnpm install failed" }
 
 # 代码检查

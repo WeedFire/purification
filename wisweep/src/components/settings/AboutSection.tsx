@@ -12,7 +12,7 @@ export function AboutSection() {
     setChecking(true);
     setUpdateInfo(null);
     try {
-      const resp = await fetch('https://api.github.com/repos/wisweep/wisweep/releases/latest', {
+      const resp = await fetch('https://api.github.com/repos/WeedFire/purification/releases/latest', {
         signal: AbortSignal.timeout(5000),
       });
       if (resp.ok) {
