@@ -1,0 +1,113 @@
+warning: unused import: `FileCategory`
+ --> src\models\scan_result.rs:5:30
+  |
+5 | use super::{EmptyFolderInfo, FileCategory, FileInfo};
+  |                              ^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `Receiver`, `Sender`, and `bounded`
+ --> src\scanner\scanner.rs:1:26
+  |
+1 | use crossbeam::channel::{bounded, Receiver, Sender};
+  |                          ^^^^^^^  ^^^^^^^^  ^^^^^^
+
+warning: unused import: `parking_lot::RwLock`
+ --> src\scanner\scanner.rs:2:5
+  |
+2 | use parking_lot::RwLock;
+  |     ^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `PathBuf`
+ --> src\scanner\scanner.rs:3:23
+  |
+3 | use std::path::{Path, PathBuf};
+  |                       ^^^^^^^
+
+warning: unused import: `AtomicU64`
+ --> src\scanner\scanner.rs:4:37
+  |
+4 | use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+  |                                     ^^^^^^^^^
+
+warning: unused import: `ScanProgress`
+ --> src\scanner\scanner.rs:9:58
+  |
+9 | use crate::models::{DiskSpaceInfo, FileInfo, ScanConfig, ScanProgress};
+  |                                                          ^^^^^^^^^^^^
+
+warning: unused import: `std::os::windows::fs::MetadataExt`
+   --> src\scanner\scanner.rs:286:13
+    |
+286 |         use std::os::windows::fs::MetadataExt;
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::ptr`
+   --> src\scanner\scanner.rs:289:17
+    |
+289 |             use std::ptr;
+    |                 ^^^^^^^^
+
+warning: unused import: `std::sync::Arc`
+ --> src\scanner\progress.rs:4:5
+  |
+4 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused import: `std::path::Path`
+ --> src\classifier\engine.rs:2:5
+  |
+2 | use std::path::Path;
+  |     ^^^^^^^^^^^^^^^
+
+warning: unused import: `GENERIC_READ`
+ --> src\cleaner\file_lock.rs:8:50
+  |
+8 |         use winapi::um::winnt::{FILE_SHARE_READ, GENERIC_READ};
+  |                                                  ^^^^^^^^^^^^
+
+warning: unused import: `history::*`
+ --> src\database\mod.rs:6:9
+  |
+6 | pub use history::*;
+  |         ^^^^^^^^^^
+
+warning: unused import: `favorites::*`
+ --> src\database\mod.rs:7:9
+  |
+7 | pub use favorites::*;
+  |         ^^^^^^^^^^^^
+
+warning: unused import: `Manager`
+  --> src\lib.rs:14:13
+   |
+14 | use tauri::{Manager, State, Emitter};
+   |             ^^^^^^^
+
+warning: unused variable: `metadata`
+   --> src\scanner\scanner.rs:287:19
+    |
+287 |         if let Ok(metadata) = std::fs::metadata(path) {
+    |                   ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_metadata`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `result`
+   --> src\cleaner\file_lock.rs:102:17
+    |
+102 |             let result = RmGetList(
+    |                 ^^^^^^ help: if this is intentional, prefix it with an underscore: `_result`
+
+warning: field `min_depth` is never read
+ --> src\scanner\empty_folder_detector.rs:9:5
+  |
+7 | pub struct EmptyFolderDetector {
+  |            ------------------- field in this struct
+8 |     /// 最小深度
+9 |     min_depth: usize,
+  |     ^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `wisweep` (lib) generated 17 warnings (run `cargo fix --lib -p wisweep` to apply 15 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.15s

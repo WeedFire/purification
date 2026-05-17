@@ -1,0 +1,71 @@
+.about-section .about-content {
+  margin-top: 12px;
+}
+
+.about-logo {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.about-version {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+  font-family: monospace;
+}
+
+.about-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0 0 16px 0;
+  max-width: 480px;
+}
+
+.about-update {
+  margin-bottom: 16px;
+}
+
+.update-result {
+  margin-top: 8px;
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+
+.update-result.latest {
+  color: #38a169;
+  background: rgba(56, 161, 105, 0.1);
+}
+
+.update-result.available {
+  color: var(--primary-color);
+  background: rgba(66, 153, 225, 0.1);
+}
+
+.update-result a {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--primary-color);
+  text-decoration: underline;
+  margin-left: 8px;
+}
+
+.about-links {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}

@@ -1,0 +1,150 @@
+.cleanup-progress-dialog {
+  background: var(--bg-primary);
+  border-radius: 16px;
+  padding: 40px;
+  text-align: center;
+  min-width: 360px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+}
+
+.cleanup-progress-dialog.done {
+  min-width: 420px;
+}
+
+.progress-icon {
+  margin-bottom: 16px;
+  color: var(--primary-color);
+}
+
+.progress-icon.success {
+  color: #38a169;
+}
+
+.progress-icon.spinning {
+  animation: spin 1.5s linear infinite;
+  color: var(--primary-color);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.cleanup-progress-dialog h2 {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 20px 0;
+}
+
+.progress-bar {
+  height: 8px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--primary-color);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.current-file {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.released-info {
+  font-size: 14px;
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+.result-stats {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  margin: 24px 0;
+}
+
+.result-stat {
+  text-align: center;
+}
+
+.result-stat .stat-value {
+  display: block;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.result-stat.failed .stat-value {
+  color: var(--danger-color);
+}
+
+.result-stat .stat-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.failed-list {
+  text-align: left;
+  margin: 16px 0;
+  padding: 12px 16px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+}
+
+.failed-list h4 {
+  font-size: 13px;
+  color: var(--danger-color);
+  margin: 0 0 8px 0;
+}
+
+.failed-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.failed-item svg {
+  color: var(--danger-color);
+  flex-shrink: 0;
+}
+
+.failed-path {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.failed-reason {
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.auto-close-hint {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 16px;
+}

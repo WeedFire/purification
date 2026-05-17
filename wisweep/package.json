@@ -1,0 +1,38 @@
+{
+  "name": "wisweep",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:tauri": "tauri dev",
+    "build": "tsc && vite build",
+    "build:tauri": "pnpm build && tauri build",
+    "build:release": "pnpm build && tauri build --release",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "lint": "tsc --noEmit",
+    "clean": "rimraf dist && cargo clean --manifest-path src-tauri/Cargo.toml",
+    "scripts:dev": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev.ps1",
+    "scripts:build": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build.ps1",
+    "scripts:package": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package.ps1"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-dialog": "^2.7.1",
+    "@tauri-apps/plugin-opener": "^2",
+    "@tauri-apps/plugin-shell": "^2.3.5",
+    "lucide-react": "^1.16.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "zustand": "^5.0.13"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.6.0",
+    "typescript": "~5.8.3",
+    "vite": "^7.0.4"
+  }
+}
