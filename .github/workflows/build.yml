@@ -11,12 +11,11 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  # ── 代码质量检查 ──
   check:
     strategy:
       fail-fast: false
       matrix:
-        platform: [windows-2025]
+        platform: [windows-latest]
 
     runs-on: ${{ matrix.platform }}
     defaults:
@@ -24,17 +23,17 @@ jobs:
         working-directory: wisweep
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
+      - name: Enable Corepack and install pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@9 --activate
 
       - name: Install frontend dependencies
         run: pnpm install --no-frozen-lockfile
@@ -45,7 +44,6 @@ jobs:
       - name: Rust check
         run: cargo check --manifest-path src-tauri/Cargo.toml
 
-  # ── 跨平台构建 ──
   build:
     needs: check
     if: startsWith(github.ref, 'refs/tags/v')
@@ -53,7 +51,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: windows-2025
+          - platform: windows-latest
             target: x86_64-pc-windows-msvc
             bundles: msi,nsis
 
@@ -63,17 +61,17 @@ jobs:
         working-directory: wisweep
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
+      - name: Enable Corepack and install pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@9 --activate
 
       - name: Install frontend dependencies
         run: pnpm install --no-frozen-lockfile
