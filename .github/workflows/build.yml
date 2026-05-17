@@ -11,6 +11,7 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  # 代码质量检查（包括 TypeScript 和 Rust）
   check:
     strategy:
       fail-fast: false
@@ -23,27 +24,35 @@ jobs:
         working-directory: wisweep
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - name: Enable Corepack and install pnpm
-        run: |
-          corepack enable
-          corepack prepare pnpm@9 --activate
+      - name: Install pnpm (global)
+        run: npm install -g pnpm@9
 
       - name: Install frontend dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: TypeScript check
+      - name: TypeScript type check
         run: pnpm tsc --noEmit
 
-      - name: Rust check
+      # 关键：安装 Rust 环境（cargo、rustc 等）
+      - name: Install Rust toolchain
+        run: |
+          rustup update stable
+          rustup component add rustfmt clippy
+          rustc --version
+          cargo --version
+
+      - name: Rust check (cargo check)
         run: cargo check --manifest-path src-tauri/Cargo.toml
 
+  # 跨平台构建（仅当打 tag 时运行）
   build:
     needs: check
     if: startsWith(github.ref, 'refs/tags/v')
@@ -61,36 +70,39 @@ jobs:
         working-directory: wisweep
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - name: Enable Corepack and install pnpm
-        run: |
-          corepack enable
-          corepack prepare pnpm@9 --activate
+      - name: Install pnpm (global)
+        run: npm install -g pnpm@9
 
       - name: Install frontend dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Build frontend
+      - name: Build frontend (Vite/React)
         run: pnpm build
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
+      # 安装 Rust（构建 Tauri 需要）
+      - name: Install Rust toolchain
+        run: |
+          rustup update stable
+          rustup target add ${{ matrix.target }}
+          rustc --version
+          cargo --version
 
+      # 仅在 Linux 下需要系统依赖（当前矩阵只有 Windows，此步不会执行，保留以备扩展）
       - name: Install Tauri dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
-      - name: Build Tauri app
+      - name: Build Tauri app and create release
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
