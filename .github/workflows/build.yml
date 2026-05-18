@@ -7,6 +7,9 @@ on:
   pull_request:
     branches: [master, main]
 
+env:
+  IS_CI: 'true'
+
 jobs:
   check:
     strategy:
@@ -23,8 +26,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Setup Node.js 24
-        uses: actions/setup-node@v5
+      - name: Get npm cache directory
+        shell: pwsh
+        run: echo "NPM_CACHE=$(npm config get cache)" >> $env:GITHUB_ENV
+
+      - name: Setup Node Env
+        uses: ./.github/actions/setup
         with:
           node-version: 24
 
@@ -67,8 +74,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Setup Node.js 24
-        uses: actions/setup-node@v5
+      - name: Get npm cache directory
+        shell: pwsh
+        run: echo "NPM_CACHE=$(npm config get cache)" >> $env:GITHUB_ENV
+
+      - name: Setup Node Env
+        uses: ./.github/actions/setup
         with:
           node-version: 24
 
