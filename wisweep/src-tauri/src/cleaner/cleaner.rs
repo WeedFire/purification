@@ -120,18 +120,24 @@ impl FileCleaner {
     /// 永久删除文件
     fn permanent_delete(&self, path: &PathBuf) -> Result<(), anyhow::Error> {
         if path.is_dir() {
-            std::fs::remove_dir_all(path)?;
-            // 验证删除成功：路径不应再存在
-            if path.exists() {
-                return Err(anyhow::anyhow!("删除失败：无法删除目录，可能没有权限"));
-            }
+            // 先尝试删除，不使用 ? 以便统一用 exists() 判断权限
+            let _ = std::fs::remove_dir_all(path);
         } else {
-            std::fs::remove_file(path)?;
-            // 验证删除成功：路径不应再存在
-            if path.exists() {
+            // 先尝试删除，不使用 ? 以便统一用 exists() 判断权限
+            let _ = std::fs::remove_file(path);
+        }
+
+        // 删除后统一判断：路径仍存在 = 没有权限
+        if path.exists() {
+            if path.is_dir() {
+                return Err(anyhow::anyhow!("删除失败：无法删除目录，可能没有权限"));
+            } else {
                 return Err(anyhow::anyhow!("删除失败：无法删除文件，可能没有权限"));
             }
-            // 删除后清理空父目录
+        }
+
+        // 文件删除成功后清理空父目录
+        if !path.is_dir() {
             Self::remove_empty_parents(path);
         }
         Ok(())

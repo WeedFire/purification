@@ -1,25 +1,33 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useAppStore } from '../../stores';
 import { invoke } from '@tauri-apps/api/core';
 import { FolderOpen, CheckSquare, Square, Trash2, CheckCircle } from 'lucide-react';
 import './EmptyFoldersPage.css';
 
+const LARGE_DATA_THRESHOLD = 2000; // 大数据量阈值
+
 export function EmptyFoldersPage() {
-  const { scanResult, isLoadingResult, setActiveTab, removeEmptyFolders } = useAppStore();
+  const { scanResult, isLoadingResult, hasScanned, setActiveTab, removeEmptyFolders } = useAppStore();
   const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
   const [done, setDone] = useState(false);
   const [deletedCount, setDeletedCount] = useState(0);
+  const [isRendering, setIsRendering] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const renderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastResultRef = useRef<string | null>(null);
 
   useEffect(() => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
+      if (renderTimerRef.current) clearTimeout(renderTimerRef.current);
     };
   }, []);
 
-  // 扫描结果加载中
-  if (isLoadingResult) {
+  // 扫描结果加载中：防止白屏
+  const shouldShowLoading = isLoadingResult || isRendering || (hasScanned && !scanResult);
+  
+  if (shouldShowLoading) {
     return (
       <div className="empty-folders-page loading">
         <div className="loading-state">
@@ -30,6 +38,37 @@ export function EmptyFoldersPage() {
       </div>
     );
   }
+
+  // 处理大数据量渲染状态（useLayoutEffect 在浏览器绘制前执行，避免白屏闪烁）
+  useLayoutEffect(() => {
+    if (!scanResult) {
+      setIsRendering(false);
+      return;
+    }
+    
+    const resultId = scanResult.scan_id;
+    const folderCount = scanResult.empty_folders.length;
+    
+    // 如果是新的扫描结果且数据量大，延迟显示列表
+    if (resultId !== lastResultRef.current && folderCount > LARGE_DATA_THRESHOLD) {
+      lastResultRef.current = resultId;
+      
+      if (renderTimerRef.current) clearTimeout(renderTimerRef.current);
+      
+      // 大数据量：先显示加载状态
+      setIsRendering(true);
+      
+      // 根据数据量调整等待时间
+      const extraDelay = Math.min(Math.ceil((folderCount - LARGE_DATA_THRESHOLD) / 500) * 100, 1000);
+      
+      renderTimerRef.current = setTimeout(() => {
+        setIsRendering(false);
+      }, 400 + extraDelay);
+    } else {
+      lastResultRef.current = resultId;
+      setIsRendering(false);
+    }
+  }, [scanResult]);
 
   if (!scanResult || scanResult.empty_folders.length === 0) {
     return (

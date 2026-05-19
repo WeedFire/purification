@@ -69,7 +69,12 @@ pub fn move_to_recycle_bin(path: &Path) -> Result<(), anyhow::Error> {
             dest
         };
 
-        std::fs::rename(path, dest)?;
+        // 尝试移动到回收站，不使用 ? 以便统一通过 exists() 判断权限
+        let _ = std::fs::rename(path, &dest);
+        // 验证移动成功：原路径不应再存在
+        if path.exists() {
+            return Err(anyhow::anyhow!("删除失败：无法移至回收站，可能没有权限"));
+        }
         Ok(())
     }
 
@@ -110,7 +115,12 @@ pub fn move_to_recycle_bin(path: &Path) -> Result<(), anyhow::Error> {
         );
         std::fs::write(&info_file, info_content)?;
 
-        std::fs::rename(path, dest)?;
+        // 尝试移动到回收站，不使用 ? 以便统一通过 exists() 判断权限
+        let _ = std::fs::rename(path, &dest);
+        // 验证移动成功：原路径不应再存在
+        if path.exists() {
+            return Err(anyhow::anyhow!("删除失败：无法移至回收站，可能没有权限"));
+        }
         Ok(())
     }
 }

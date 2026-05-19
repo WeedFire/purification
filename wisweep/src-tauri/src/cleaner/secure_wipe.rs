@@ -54,10 +54,10 @@ pub fn secure_delete_file(path: &Path, passes: u32) -> Result<(), anyhow::Error>
     drop(file);
     std::fs::rename(path, &temp_path)?;
 
-    // 删除文件
-    std::fs::remove_file(&temp_path)?;
+    // 删除文件（不使用 ? 以便统一通过 exists() 判断权限）
+    let _ = std::fs::remove_file(&temp_path);
 
-    // 验证删除成功：路径不应再存在
+    // 删除后统一判断：路径仍存在 = 没有权限
     if temp_path.exists() {
         return Err(anyhow::anyhow!("删除失败：无法删除文件，可能没有权限"));
     }

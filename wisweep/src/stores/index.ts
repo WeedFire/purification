@@ -19,6 +19,7 @@ interface AppState {
   scanResult: ScanResult | null;
   isScanning: boolean;
   isLoadingResult: boolean;
+  hasScanned: boolean; // 是否曾经扫描过（用于判断是否应显示加载状态） // 扫描是否已完成（等待结果加载）
   
   // 清理状态
   cleanupProgress: CleanupProgress | null;
@@ -96,6 +97,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   scanResult: null,
   isScanning: false,
   isLoadingResult: false,
+  hasScanned: false,
   cleanupProgress: null,
   cleanupResult: null,
   isCleaning: false,
@@ -163,7 +165,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   
   // 扫描操作
   startScan: async (paths) => {
-    set({ isScanning: true, scanProgress: null, scanResult: null, selectedFiles: new Set(), cleanupResult: null });
+    set({ isScanning: true, scanProgress: null, scanResult: null, selectedFiles: new Set(), cleanupResult: null, hasScanned: true, isLoadingResult: false });
     
     try {
       const scanId = await invoke<string>('start_scan', {
@@ -297,7 +299,7 @@ listen<ScanProgress>('scan-progress', (event) => {
   useAppStore.setState({ scanProgress: progress });
   
   if (!progress.is_scanning && !progress.is_paused) {
-    useAppStore.setState({ isScanning: false, isLoadingResult: true });
+    useAppStore.setState({ isScanning: false, isLoadingResult: true, hasScanned: true });
     // 扫描完成后获取结果
     invoke<ScanResult | null>('get_scan_result').then((result) => {
       useAppStore.setState({ 

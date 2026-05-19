@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { useAppStore } from '../../stores';
 import { CategoryLabels, CategoryColors, type FileCategory } from '../../types';
 import { formatSize, formatDate } from '../../utils/format';
@@ -17,6 +17,7 @@ import {
 import './ResultPage.css';
 
 const PAGE_SIZE = 200;
+const LARGE_DATA_THRESHOLD = 3000; // 大数据量阈值
 
 interface ResultPageProps {
   onStartCleanup: () => void;
@@ -26,6 +27,7 @@ export function ResultPage({ onStartCleanup }: ResultPageProps) {
   const {
     scanResult,
     isLoadingResult,
+    hasScanned,
     selectedFiles,
     toggleFileSelection,
     deselectAllFiles,
@@ -33,6 +35,37 @@ export function ResultPage({ onStartCleanup }: ResultPageProps) {
     openFileLocation,
     setActiveTab,
   } = useAppStore();
+
+  // 加载/渲染中状态
+  const [isRendering, setIsRendering] = useState(false);
+  const renderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastResultRef = useRef<string | null>(null);
+
+  // 清理定时器
+  useEffect(() => {
+    return () => {
+      if (renderTimerRef.current) clearTimeout(renderTimerRef.current);
+    };
+  }, []);
+
+  // 扫描结果加载中：防止白屏
+  // 显示加载状态的条件：
+  // 1. isLoadingResult = 正在获取结果
+  // 2. isRendering = 大数据量渲染中
+  // 3. hasScanned 且 scanResult 为 null = 曾经扫描过但结果还没到
+  const shouldShowLoading = isLoadingResult || isRendering || (hasScanned && !scanResult);
+  
+  if (shouldShowLoading) {
+    return (
+      <div className="result-page loading">
+        <div className="loading-state">
+          <div className="loading-spinner"></div>
+          <h3>正在加载扫描结果...</h3>
+          <p>数据较多，请稍候</p>
+        </div>
+      </div>
+    );
+  }
 
   // 搜索
   const [searchQuery, setSearchQuery] = useState('');
@@ -122,18 +155,37 @@ export function ResultPage({ onStartCleanup }: ResultPageProps) {
     return files.slice(0, pages * PAGE_SIZE);
   }, [loadedPages]);
 
-  // 扫描结果加载中
-  if (isLoadingResult) {
-    return (
-      <div className="result-page loading">
-        <div className="loading-state">
-          <div className="loading-spinner"></div>
-          <h3>正在加载扫描结果...</h3>
-          <p>数据较多，请稍候</p>
-        </div>
-      </div>
-    );
-  }
+  // 处理大数据量渲染状态（useLayoutEffect 在浏览器绘制前执行，避免白屏闪烁）
+  useLayoutEffect(() => {
+    if (!scanResult) {
+      setIsRendering(false);
+      return;
+    }
+    
+    const resultId = scanResult.scan_id;
+    const fileCount = scanResult.candidates.length;
+    
+    // 如果是新的扫描结果且数据量大，延迟显示列表
+    if (resultId !== lastResultRef.current && fileCount > LARGE_DATA_THRESHOLD) {
+      lastResultRef.current = resultId;
+      
+      // 清除之前的定时器
+      if (renderTimerRef.current) clearTimeout(renderTimerRef.current);
+      
+      // 大数据量：先显示加载状态
+      setIsRendering(true);
+      
+      // 根据数据量调整等待时间：每超过 1000 个文件增加 100ms，最多 1500ms
+      const extraDelay = Math.min(Math.ceil((fileCount - LARGE_DATA_THRESHOLD) / 1000) * 100, 1500);
+      
+      renderTimerRef.current = setTimeout(() => {
+        setIsRendering(false);
+      }, 400 + extraDelay);
+    } else {
+      lastResultRef.current = resultId;
+      setIsRendering(false);
+    }
+  }, [scanResult]);
 
   if (!scanResult) {
     return (
