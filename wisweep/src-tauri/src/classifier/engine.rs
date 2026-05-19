@@ -18,6 +18,46 @@ impl FileClassifier {
         }
     }
 
+    /// 更新系统保护路径规则（从数据库加载）
+    pub fn update_protected_paths(&self, paths: Vec<String>) {
+        let mut rules = self.rules.write();
+        
+        // 移除旧的系统保护规则
+        rules.retain(|r| r.id != "SYS_PROTECT_WIN" && r.id != "SYS_PROTECT_MAC" && r.id != "SYS_PROTECT_LINUX");
+        
+        if paths.is_empty() {
+            return;
+        }
+        
+        // 添加新的系统保护规则
+        #[cfg(windows)]
+        {
+            let mut win_paths = paths.clone();
+            // 确保默认路径存在
+            if !win_paths.iter().any(|p| p.contains("\\Windows\\")) {
+                win_paths.insert(0, "\\Windows\\".to_string());
+            }
+            rules.push(ClassificationRule {
+                id: "SYS_PROTECT_WIN".to_string(),
+                name: "Windows 系统保护".to_string(),
+                pattern_type: crate::models::MatchPatternType::PathContains,
+                patterns: win_paths,
+                category: FileCategory::SystemProtected,
+                base_weight: 0,
+                time_threshold_days: None,
+                time_weight_bonus: 0,
+                size_threshold: None,
+                size_weight_bonus: 0,
+                is_protection: true,
+                enabled: true,
+                description: Some("Windows 系统关键路径".to_string()),
+            });
+        }
+        
+        #[cfg(not(windows))]
+        let _ = paths; // 避免未使用警告
+    }
+
     /// 添加自定义规则
     pub fn add_rule(&self, rule: ClassificationRule) {
         self.rules.write().push(rule);

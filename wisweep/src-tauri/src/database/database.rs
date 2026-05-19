@@ -81,6 +81,25 @@ impl Database {
             CREATE INDEX IF NOT EXISTS idx_scan_history_start_time ON scan_history(start_time);
             CREATE INDEX IF NOT EXISTS idx_favorite_paths_path ON favorite_paths(path);
             CREATE INDEX IF NOT EXISTS idx_cleanup_log_scan_id ON cleanup_log(scan_id);
+
+            -- 系统保护路径表（用户可自定义）
+            CREATE TABLE IF NOT EXISTS protected_paths (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                path TEXT NOT NULL UNIQUE,
+                description TEXT,
+                is_system INTEGER DEFAULT 0,
+                created_at INTEGER NOT NULL
+            );
+
+            -- 插入默认的 Windows 系统保护路径（仅当表为空时）
+            INSERT OR IGNORE INTO protected_paths (path, description, is_system, created_at)
+            SELECT '\Windows\', 'Windows 系统目录', 1, 0 WHERE NOT EXISTS (SELECT 1 FROM protected_paths);
+            INSERT OR IGNORE INTO protected_paths (path, description, is_system, created_at)
+            SELECT '\Program Files\', '程序安装目录', 1, 0 WHERE NOT EXISTS (SELECT 1 FROM protected_paths);
+            INSERT OR IGNORE INTO protected_paths (path, description, is_system, created_at)
+            SELECT '\Program Files (x86)\', '32位程序安装目录', 1, 0 WHERE NOT EXISTS (SELECT 1 FROM protected_paths);
+            INSERT OR IGNORE INTO protected_paths (path, description, is_system, created_at)
+            SELECT '\ProgramData\', '程序数据目录', 1, 0 WHERE NOT EXISTS (SELECT 1 FROM protected_paths);
             "#,
         )?;
         Ok(())
@@ -246,6 +265,54 @@ impl Database {
         )?;
         Ok(())
     }
+
+    /// 获取所有保护路径
+    pub fn get_protected_paths(&self) -> Result<Vec<ProtectedPath>, anyhow::Error> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, path, description, is_system, created_at FROM protected_paths ORDER BY is_system DESC, id ASC"
+        )?;
+
+        let paths = stmt
+            .query_map([], |row| {
+                Ok(ProtectedPath {
+                    id: row.get(0)?,
+                    path: row.get(1)?,
+                    description: row.get(2)?,
+                    is_system: row.get::<_, i32>(3)? == 1,
+                    created_at: row.get(4)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(paths)
+    }
+
+    /// 添加保护路径
+    pub fn add_protected_path(&self, path: &str, description: Option<&str>) -> Result<(), anyhow::Error> {
+        self.conn.execute(
+            "INSERT OR IGNORE INTO protected_paths (path, description, is_system, created_at) VALUES (?1, ?2, 0, ?3)",
+            params![path, description, chrono::Utc::now().timestamp_millis()],
+        )?;
+        Ok(())
+    }
+
+    /// 移除保护路径
+    pub fn remove_protected_path(&self, id: i64) -> Result<(), anyhow::Error> {
+        self.conn.execute(
+            "DELETE FROM protected_paths WHERE id = ?1 AND is_system = 0",
+            params![id],
+        )?;
+        Ok(())
+    }
+
+    /// 重置为默认系统保护路径（删除用户自定义的）
+    pub fn reset_protected_paths(&self) -> Result<(), anyhow::Error> {
+        self.conn.execute(
+            "DELETE FROM protected_paths WHERE is_system = 0",
+            [],
+        )?;
+        Ok(())
+    }
 }
 
 /// 扫描历史记录
@@ -286,4 +353,14 @@ pub struct CleanupLogRecord {
     pub delete_mode: String,
     pub result: String,
     pub error_message: Option<String>,
+}
+
+/// 保护路径记录
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProtectedPath {
+    pub id: i64,
+    pub path: String,
+    pub description: Option<String>,
+    pub is_system: bool,
+    pub created_at: i64,
 }

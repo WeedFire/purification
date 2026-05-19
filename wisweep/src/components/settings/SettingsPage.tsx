@@ -1,10 +1,84 @@
+import { useState, useEffect } from 'react';
+import { invoke } from '@tauri-apps/api/core';
 import { useAppStore } from '../../stores';
-import { FileText, Shield } from 'lucide-react';
+import { FileText, Shield, FolderPlus, Trash2, RotateCcw } from 'lucide-react';
 import { AboutSection } from './AboutSection';
 import './SettingsPage.css';
 
+interface ProtectedPath {
+  id: number;
+  path: string;
+  description: string | null;
+  is_system: boolean;
+  created_at: number;
+}
+
 export function SettingsPage() {
   const { rules, cleanupMode, setCleanupMode } = useAppStore();
+  const [protectedPaths, setProtectedPaths] = useState<ProtectedPath[]>([]);
+  const [newPath, setNewPath] = useState('');
+  const [newDesc, setNewDesc] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // 加载保护路径
+  const loadProtectedPaths = async () => {
+    try {
+      const paths = await invoke<ProtectedPath[]>('get_protected_paths');
+      setProtectedPaths(paths);
+    } catch (e) {
+      console.error('加载保护路径失败:', e);
+    }
+  };
+
+  useEffect(() => {
+    loadProtectedPaths();
+  }, []);
+
+  // 添加保护路径
+  const handleAddPath = async () => {
+    if (!newPath.trim()) return;
+    setLoading(true);
+    try {
+      await invoke('add_protected_path', {
+        path: newPath.trim(),
+        description: newDesc.trim() || null,
+      });
+      setNewPath('');
+      setNewDesc('');
+      await loadProtectedPaths();
+    } catch (e) {
+      console.error('添加保护路径失败:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 移除保护路径
+  const handleRemovePath = async (id: number) => {
+    setLoading(true);
+    try {
+      await invoke('remove_protected_path', { id });
+      await loadProtectedPaths();
+    } catch (e) {
+      console.error('移除保护路径失败:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 重置为默认
+  const handleReset = async () => {
+    if (!confirm('确定要重置为默认系统保护路径吗？')) return;
+    setLoading(true);
+    try {
+      await invoke('reset_protected_paths');
+      await loadProtectedPaths();
+    } catch (e) {
+      console.error('重置失败:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="settings-page">
@@ -41,6 +115,68 @@ export function SettingsPage() {
               </label>
             ))}
           </div>
+        </section>
+
+        {/* 系统保护路径 */}
+        <section className="settings-section">
+          <h3>
+            <Shield size={20} />
+            系统保护路径
+          </h3>
+          <div className="admin-tip">
+            <Shield size={16} />
+            <span>提示：删除系统文件或受保护目录时，需要 <strong>以管理员身份运行</strong> 本程序才能成功删除</span>
+          </div>
+          <p className="section-desc">保护路径下的文件不会被清理。用户可添加自定义路径或移除不需要的系统路径</p>
+          
+          {/* 添加新路径 */}
+          <div className="protected-path-add">
+            <input
+              type="text"
+              placeholder="输入路径（如 \Program Files\MyApp\）"
+              value={newPath}
+              onChange={(e) => setNewPath(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAddPath()}
+            />
+            <input
+              type="text"
+              placeholder="描述（可选）"
+              value={newDesc}
+              onChange={(e) => setNewDesc(e.target.value)}
+            />
+            <button onClick={handleAddPath} disabled={loading || !newPath.trim()}>
+              <FolderPlus size={16} />
+              添加
+            </button>
+          </div>
+
+          {/* 路径列表 */}
+          <div className="protected-paths-list">
+            {protectedPaths.map((p) => (
+              <div key={p.id} className="protected-path-item">
+                <div className="path-info">
+                  <code>{p.path}</code>
+                  {p.description && <span className="path-desc">{p.description}</span>}
+                  {p.is_system && <span className="path-tag system">系统</span>}
+                </div>
+                {!p.is_system && (
+                  <button
+                    className="btn-icon btn-danger"
+                    onClick={() => handleRemovePath(p.id)}
+                    disabled={loading}
+                    title="移除"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <button className="btn-secondary" onClick={handleReset} disabled={loading}>
+            <RotateCcw size={16} />
+            重置为默认
+          </button>
         </section>
 
         {/* 分类规则 */}

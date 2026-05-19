@@ -8,7 +8,7 @@ pub mod cleaner;
 pub mod database;
 pub mod utils;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use parking_lot::{Mutex, RwLock};
 use tauri::{Manager, State, Emitter};
@@ -296,14 +296,49 @@ fn cancel_cleanup(state: State<'_, AppState>) -> Result<(), String> {
 
 // ==================== 空文件夹命令 ====================
 
+/// 判断目录是否为空（无文件、无子目录）
+fn is_dir_empty(dir: &Path) -> bool {
+    if let Ok(mut entries) = std::fs::read_dir(dir) {
+        entries.next().is_none()
+    } else {
+        false
+    }
+}
+
+/// 递归向上删除变成空目录的父目录
+fn remove_empty_parent_dirs(start_path: &Path) {
+    let mut current = start_path.parent();
+    while let Some(parent) = current {
+        // 如果父目录不存在或不是目录，停止
+        if !parent.exists() || !parent.is_dir() {
+            break;
+        }
+        // 如果父目录不为空，停止
+        if !is_dir_empty(parent) {
+            break;
+        }
+        // 删除这个空父目录
+        if std::fs::remove_dir(parent).is_ok() {
+            current = parent.parent();
+        } else {
+            // 删除失败，停止
+            break;
+        }
+    }
+}
+
 #[tauri::command]
 fn delete_empty_folders(dir_paths: Vec<String>) -> Result<Vec<String>, String> {
     let mut failed = Vec::new();
     for path_str in &dir_paths {
         let path = PathBuf::from(path_str);
         if path.exists() && path.is_dir() {
+            // 先删除指定的空目录
             if let Err(e) = std::fs::remove_dir(&path) {
                 failed.push(format!("{}: {}", path_str, e));
+            } else {
+                // 成功后向上遍历，删除变成空的父目录
+                remove_empty_parent_dirs(&path);
             }
         }
     }
@@ -428,6 +463,69 @@ fn remove_rule(rule_id: String, state: State<'_, AppState>) -> Result<bool, Stri
     Ok(state.classifier.remove_rule(&rule_id))
 }
 
+// ==================== 保护路径管理命令 ====================
+
+#[tauri::command]
+fn get_protected_paths(state: State<'_, AppState>) -> Result<Vec<database::ProtectedPath>, String> {
+    if let Some(ref db) = *state.database.lock() {
+        db.get_protected_paths()
+            .map_err(|e| format!("获取保护路径失败: {}", e))
+    } else {
+        Err("数据库未初始化".to_string())
+    }
+}
+
+#[tauri::command]
+fn add_protected_path(path: String, description: Option<String>, state: State<'_, AppState>) -> Result<(), String> {
+    if let Some(ref db) = *state.database.lock() {
+        db.add_protected_path(&path, description.as_deref())
+            .map_err(|e| format!("添加保护路径失败: {}", e))?;
+        
+        // 重新加载保护路径到分类器
+        if let Ok(paths) = db.get_protected_paths() {
+            let path_strings: Vec<String> = paths.into_iter().map(|p| p.path).collect();
+            state.classifier.update_protected_paths(path_strings);
+        }
+        Ok(())
+    } else {
+        Err("数据库未初始化".to_string())
+    }
+}
+
+#[tauri::command]
+fn remove_protected_path(id: i64, state: State<'_, AppState>) -> Result<(), String> {
+    if let Some(ref db) = *state.database.lock() {
+        db.remove_protected_path(id)
+            .map_err(|e| format!("移除保护路径失败: {}", e))?;
+        
+        // 重新加载保护路径到分类器
+        if let Ok(paths) = db.get_protected_paths() {
+            let path_strings: Vec<String> = paths.into_iter().map(|p| p.path).collect();
+            state.classifier.update_protected_paths(path_strings);
+        }
+        Ok(())
+    } else {
+        Err("数据库未初始化".to_string())
+    }
+}
+
+#[tauri::command]
+fn reset_protected_paths(state: State<'_, AppState>) -> Result<(), String> {
+    if let Some(ref db) = *state.database.lock() {
+        db.reset_protected_paths()
+            .map_err(|e| format!("重置保护路径失败: {}", e))?;
+        
+        // 重新加载保护路径到分类器
+        if let Ok(paths) = db.get_protected_paths() {
+            let path_strings: Vec<String> = paths.into_iter().map(|p| p.path).collect();
+            state.classifier.update_protected_paths(path_strings);
+        }
+        Ok(())
+    } else {
+        Err("数据库未初始化".to_string())
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // 初始化数据库
@@ -442,12 +540,24 @@ pub fn run() {
     
     let database = Database::new(&db_path).expect("Failed to initialize database");
     
+    // 从数据库加载保护路径
+    let protected_paths: Vec<String> = database.get_protected_paths()
+        .map(|paths| paths.into_iter().map(|p| p.path).collect())
+        .unwrap_or_default();
+    
+    // 创建分类器并加载保护路径
+    let classifier = FileClassifier::new();
+    if !protected_paths.is_empty() {
+        classifier.update_protected_paths(protected_paths);
+    }
+    
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
         .manage(AppState {
             database: Mutex::new(Some(database)),
+            classifier: Arc::new(classifier),
             ..Default::default()
         })
         .invoke_handler(tauri::generate_handler![
@@ -468,6 +578,10 @@ pub fn run() {
             get_rules,
             add_rule,
             remove_rule,
+            get_protected_paths,
+            add_protected_path,
+            remove_protected_path,
+            reset_protected_paths,
             get_scan_history,
             get_cleanup_logs,
             delete_scan_history,
