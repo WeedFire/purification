@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "智净大师",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "identifier": "com.wisweep.app",
   "build": {
     "beforeDevCommand": "pnpm dev",

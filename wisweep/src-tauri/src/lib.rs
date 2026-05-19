@@ -337,8 +337,13 @@ fn delete_empty_folders(dir_paths: Vec<String>) -> Result<Vec<String>, String> {
             if let Err(e) = std::fs::remove_dir(&path) {
                 failed.push(format!("{}: {}", path_str, e));
             } else {
-                // 成功后向上遍历，删除变成空的父目录
-                remove_empty_parent_dirs(&path);
+                // 验证删除成功：路径不应再存在
+                if path.exists() {
+                    failed.push(format!("{}: 删除失败，可能没有权限", path_str));
+                } else {
+                    // 成功后向上遍历，删除变成空的父目录
+                    remove_empty_parent_dirs(&path);
+                }
             }
         }
     }

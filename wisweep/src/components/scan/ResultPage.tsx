@@ -25,6 +25,7 @@ interface ResultPageProps {
 export function ResultPage({ onStartCleanup }: ResultPageProps) {
   const {
     scanResult,
+    isLoadingResult,
     selectedFiles,
     toggleFileSelection,
     deselectAllFiles,
@@ -120,6 +121,19 @@ export function ResultPage({ onStartCleanup }: ResultPageProps) {
     const pages = loadedPages[category] || 1;
     return files.slice(0, pages * PAGE_SIZE);
   }, [loadedPages]);
+
+  // 扫描结果加载中
+  if (isLoadingResult) {
+    return (
+      <div className="result-page loading">
+        <div className="loading-state">
+          <div className="loading-spinner"></div>
+          <h3>正在加载扫描结果...</h3>
+          <p>数据较多，请稍候</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!scanResult) {
     return (

@@ -31,9 +31,14 @@ pub fn move_to_recycle_bin(path: &Path) -> Result<(), anyhow::Error> {
 
         if result != 0 {
             return Err(anyhow::anyhow!(
-                "Failed to move file to recycle bin, error code: {}",
+                "删除失败：错误码 {}",
                 result
             ));
+        }
+
+        // 验证删除成功：路径不应再存在
+        if path.exists() {
+            return Err(anyhow::anyhow!("删除失败：无法移至回收站，可能没有权限"));
         }
 
         Ok(())

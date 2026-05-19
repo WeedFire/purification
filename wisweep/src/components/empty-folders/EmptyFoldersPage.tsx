@@ -5,7 +5,7 @@ import { FolderOpen, CheckSquare, Square, Trash2, CheckCircle } from 'lucide-rea
 import './EmptyFoldersPage.css';
 
 export function EmptyFoldersPage() {
-  const { scanResult, setActiveTab, removeEmptyFolders } = useAppStore();
+  const { scanResult, isLoadingResult, setActiveTab, removeEmptyFolders } = useAppStore();
   const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
   const [done, setDone] = useState(false);
@@ -17,6 +17,19 @@ export function EmptyFoldersPage() {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, []);
+
+  // 扫描结果加载中
+  if (isLoadingResult) {
+    return (
+      <div className="empty-folders-page loading">
+        <div className="loading-state">
+          <div className="loading-spinner"></div>
+          <h3>正在加载扫描结果...</h3>
+          <p>数据较多，请稍候</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!scanResult || scanResult.empty_folders.length === 0) {
     return (

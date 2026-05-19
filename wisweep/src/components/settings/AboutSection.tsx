@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Info, ExternalLink, Loader2 } from 'lucide-react';
 import './AboutSection.css';
 
-const APP_VERSION = '0.1.0';
+const APP_VERSION = '1.0.0';
 
 export function AboutSection() {
   const [checking, setChecking] = useState(false);

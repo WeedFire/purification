@@ -121,8 +121,16 @@ impl FileCleaner {
     fn permanent_delete(&self, path: &PathBuf) -> Result<(), anyhow::Error> {
         if path.is_dir() {
             std::fs::remove_dir_all(path)?;
+            // 验证删除成功：路径不应再存在
+            if path.exists() {
+                return Err(anyhow::anyhow!("删除失败：无法删除目录，可能没有权限"));
+            }
         } else {
             std::fs::remove_file(path)?;
+            // 验证删除成功：路径不应再存在
+            if path.exists() {
+                return Err(anyhow::anyhow!("删除失败：无法删除文件，可能没有权限"));
+            }
             // 删除后清理空父目录
             Self::remove_empty_parents(path);
         }

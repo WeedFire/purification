@@ -130,8 +130,8 @@ npm run build:release -- --bundles nsis
 
 ```
 bundle/
-├── msi/智净大师_0.1.0_x64_zh-CN.msi
-└── nsis/智净大师_0.1.0_x64-setup.exe
+├── msi/智净大师_1.0.0_x64_zh-CN.msi
+└── nsis/智净大师_1.0.0_x64-setup.exe
 ```
 
 ### 仅构建前端

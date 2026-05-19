@@ -18,6 +18,7 @@ interface AppState {
   scanProgress: ScanProgress | null;
   scanResult: ScanResult | null;
   isScanning: boolean;
+  isLoadingResult: boolean;
   
   // 清理状态
   cleanupProgress: CleanupProgress | null;
@@ -94,6 +95,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   scanProgress: null,
   scanResult: null,
   isScanning: false,
+  isLoadingResult: false,
   cleanupProgress: null,
   cleanupResult: null,
   isCleaning: false,
@@ -295,16 +297,17 @@ listen<ScanProgress>('scan-progress', (event) => {
   useAppStore.setState({ scanProgress: progress });
   
   if (!progress.is_scanning && !progress.is_paused) {
-    useAppStore.setState({ isScanning: false });
+    useAppStore.setState({ isScanning: false, isLoadingResult: true });
     // 扫描完成后获取结果
-    invoke<ScanResult>('get_scan_result').then((result) => {
-      if (result) {
-        useAppStore.setState({ 
-          scanResult: result,
-          // 自动跳转到结果页
-          activeTab: 'result',
-        });
-      }
+    invoke<ScanResult | null>('get_scan_result').then((result) => {
+      useAppStore.setState({ 
+        scanResult: result,
+        isLoadingResult: false,
+        // 自动跳转到结果页
+        activeTab: 'result',
+      });
+    }).catch(() => {
+      useAppStore.setState({ isLoadingResult: false });
     });
   }
 });
