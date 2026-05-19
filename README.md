@@ -36,26 +36,30 @@
 
 | 工具 | 版本要求 | 安装方式 |
 |------|----------|----------|
-| Node.js | >= 18 | [nodejs.org](https://nodejs.org/) |
-| pnpm | >= 8 | `npm install -g pnpm` |
-| Rust | nightly/stable | [rustup.rs](https://rustup.rs/) |
+| Node.js | >= 20 (推荐 24) | [nodejs.org](https://nodejs.org/) |
+| pnpm | >= 9 | `npm install -g pnpm` |
+| Rust | stable | [rustup.rs](https://rustup.rs/) |
 | Windows SDK | — | Visual Studio Build Tools 或 Visual Studio 2022 |
 
 ### 一键启动（推荐）
 
 ```powershell
-# Windows PowerShell
+# Windows PowerShell，进入 wisweep 目录后运行
+cd wisweep
 .\scripts\dev.ps1
 ```
 
 ### 手动启动
 
-```bash
-# 1. 安装依赖
+```powershell
+# 1. 进入项目目录
+cd wisweep
+
+# 2. 安装依赖
 pnpm install
 
-# 2. 启动开发服务器（前端 + Tauri 窗口）
-pnpm dev:tauri
+# 3. 启动开发服务器（前端 + Tauri 窗口）
+pnpm tauri dev
 ```
 
 首次启动会下载 Rust 依赖并编译后端，耗时约 2-5 分钟。
@@ -64,45 +68,65 @@ pnpm dev:tauri
 
 ## 脚本说明
 
+所有脚本位于 `wisweep/scripts/` 目录，需在 PowerShell 中运行。
+
 | 脚本 | 用途 | 命令 |
 |------|------|------|
-| `scripts/dev.ps1` | 一键启动开发环境 | `.\scripts\dev.ps1` |
-| `scripts/build.ps1` | 构建项目（可选 Release） | `.\scripts\build.ps1 --release` |
-| `scripts/package.ps1` | 打包发布安装程序 | `.\scripts\package.ps1` |
-| `scripts/ci-build.ps1` | CI/CD 环境构建 | `.\scripts\ci-build.ps1` |
+| `scripts/dev.ps1` | 一键启动开发环境（含依赖检查） | `.\scripts\dev.ps1` |
+| `scripts/build.ps1` | 构建项目（支持 --release） | `.\scripts\build.ps1 --release` |
+| `scripts/package.ps1` | 完整发布打包（清旧产物 + 构建 + MSI/NSIS） | `.\scripts\package.ps1` |
+| `scripts/ci-build.ps1` | CI/CD 环境构建（检查 + 打包） | `.\scripts\ci-build.ps1` |
 
-### 也可通过 pnpm 调用
+### PowerShell 脚本参数
+
+```powershell
+# build.ps1 参数
+.\scripts\build.ps1 [-Release] [-Targets <msi|nsis|all>]
+
+# 示例：只打包 NSIS 安装程序
+.\scripts\build.ps1 -Release -Targets nsis
+```
+
+### 也可通过 pnpm 调用（工作目录必须为 wisweep/）
 
 ```bash
-pnpm scripts:dev          # 启动开发
-pnpm scripts:build        # 构建
-pnpm scripts:package      # 打包发布
-pnpm build:tauri          # Tauri 构建（Debug）
-pnpm build:release        # Tauri 构建（Release）
+pnpm scripts:dev          # 启动开发（内部调用 dev.ps1）
+pnpm scripts:build        # 构建（内部调用 build.ps1）
+pnpm scripts:package      # 打包发布（内部调用 package.ps1）
+pnpm scripts:ci           # CI 构建（内部调用 ci-build.ps1）
+pnpm build                # 仅构建前端
+pnpm build:tauri          # 构建前端 + Tauri（Debug）
+pnpm build:release        # 构建前端 + Tauri（Release）
 ```
 
 ---
 
 ## 构建与打包
 
+> 所有命令需在 `wisweep/` 目录下执行。
+
 ### 开发构建
 
 ```bash
 pnpm build:tauri
-# 产物: src-tauri/target/debug/wisweep.exe
+# 产物: wisweep/src-tauri/target/debug/wisweep.exe
 ```
 
 ### 发布构建
+
+> Tauri v2 的 `build` 命令默认就是 Release 模式，无需额外参数。
 
 ```bash
 # 打包为安装程序（MSI + NSIS）
 pnpm build:release
 
-# 或使用打包脚本（会先清理旧产物）
-pnpm scripts:package
+# 或只打包 NSIS（跳过 MSI）
+npm run build:release -- --bundles nsis
 ```
 
-发布产物位于 `src-tauri/target/release/bundle/`：
+> 注意：发布构建前请确保前端 `wisweep/dist/` 已存在，或先运行 `pnpm build`。
+
+发布产物位于 `wisweep/src-tauri/target/release/bundle/`：
 
 ```
 bundle/
@@ -114,7 +138,7 @@ bundle/
 
 ```bash
 pnpm build
-# 产物: dist/ (Vite 静态文件)
+# 产物: wisweep/dist/ (Vite 静态文件)
 ```
 
 ---
@@ -203,15 +227,17 @@ wisweep/
 
 ### 关键命令
 
+> 所有命令需在 `wisweep/` 目录下执行。
+
 ```bash
 # TypeScript 类型检查
-pnpm lint
+pnpm tsc --noEmit
 
 # 仅启动前端（不启动 Tauri 窗口）
 pnpm dev
 
-# Rust 代码检查
-cd src-tauri && cargo check
+# Rust 代码检查（完整路径）
+cd wisweep/src-tauri && cargo check
 
 # 清理构建产物
 pnpm clean

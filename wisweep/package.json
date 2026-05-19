@@ -7,15 +7,16 @@
     "dev": "vite",
     "dev:tauri": "tauri dev",
     "build": "tsc && vite build",
-    "build:tauri": "pnpm build && tauri build",
-    "build:release": "pnpm build && tauri build --release",
+    "build:tauri": "tauri build",
+    "build:release": "tauri build",
     "preview": "vite preview",
     "tauri": "tauri",
     "lint": "tsc --noEmit",
     "clean": "rimraf dist && cargo clean --manifest-path src-tauri/Cargo.toml",
     "scripts:dev": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev.ps1",
     "scripts:build": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build.ps1",
-    "scripts:package": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package.ps1"
+    "scripts:package": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package.ps1",
+    "scripts:ci": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci-build.ps1"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
