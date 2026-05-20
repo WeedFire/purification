@@ -37,7 +37,6 @@ jobs:
       - name: TypeScript check
         run: pnpm tsc --noEmit
 
-      # 安装 Rust（GitHub 默认没有）
       - name: Install Rust stable
         run: |
           rustup update stable
@@ -88,13 +87,39 @@ jobs:
           rustc --version
           cargo --version
 
-      - name: Build frontend
-        run: pnpm build
+      # 关键步骤：安装Windows构建依赖
+      - name: Install Windows Build Tools
+        run: |
+          choco install visualstudio2022buildtools -y --params "--add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.Windows10SDK.19041"
+          choco install webview2 -y
+        shell: powershell
 
+      # 关键步骤：设置环境变量和离线模式
+      - name: Setup Tauri build environment
+        run: |
+          # 创建Tauri工具缓存目录
+          mkdir -p "$env:LOCALAPPDATA\\tauri\\NSIS"
+          mkdir -p "$env:LOCALAPPDATA\\tauri\\WixTools"
+          
+          # 设置环境变量，启用离线模式
+          $env:NSIS_PATH = "$env:LOCALAPPDATA\\tauri\\NSIS"
+          $env:WIX_PATH = "$env:LOCALAPPDATA\\tauri\\WixTools"
+          $env:TAURI_SKIP_NSIS_DOWNLOAD = "true"
+          $env:TAURI_SKIP_WIX_DOWNLOAD = "true"
+          
+          # 检查环境变量
+          Get-ChildItem env: | Where-Object { $_.Name -like "*TAURI*" -or $_.Name -like "*NSIS*" -or $_.Name -like "*WIX*" }
+        shell: powershell
+
+      # 关键步骤：使用tauri-action的增强配置
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 设置超时时间
+          CARGO_HTTP_TIMEOUT: 600
+          # 启用详细日志
+          RUST_LOG: debug
         with:
           projectPath: wisweep
           tagName: ${{ github.ref_name }}
@@ -103,3 +128,5 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: --release --bundles ${{ matrix.bundles }}
+          # 启用调试模式
+          debug: true
