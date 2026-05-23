@@ -90,8 +90,8 @@ jobs:
       # 关键步骤：安装Windows构建依赖
       - name: Install Windows Build Tools
         run: |
-          choco install visualstudio2022buildtools -y --params "--add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.Windows10SDK.19041"
-          choco install webview2 -y
+          choco install visualstudio2022buildtools -y --no-progress --params "--add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.Windows10SDK.19041"
+          choco install webview2-runtime -y --no-progress
         shell: powershell
 
       # 关键步骤：设置环境变量和离线模式
