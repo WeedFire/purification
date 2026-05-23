@@ -108,6 +108,7 @@ jobs:
           RUST_LOG: debug
         with:
           projectPath: wisweep
+          appName: Wisweep
           tagName: ${{ github.ref_name }}
           releaseName: '智净大师 v__VERSION__'
           releaseBody: '请查看 [RELEASE_NOTES.md] 了解本版本的变更。'
