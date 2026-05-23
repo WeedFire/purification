@@ -55,7 +55,7 @@ jobs:
         include:
           - platform: windows-latest
             target: x86_64-pc-windows-msvc
-            bundles: msi,nsis
+            bundles: nsis
 
     runs-on: ${{ matrix.platform }}
     defaults:
@@ -92,23 +92,6 @@ jobs:
         run: |
           choco install visualstudio2022buildtools -y --no-progress --params "--add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.Windows10SDK.19041"
           choco install webview2-runtime -y --no-progress
-        shell: powershell
-
-      # 关键步骤：设置环境变量和离线模式
-      - name: Setup Tauri build environment
-        run: |
-          # 创建Tauri工具缓存目录
-          mkdir -p "$env:LOCALAPPDATA\\tauri\\NSIS"
-          mkdir -p "$env:LOCALAPPDATA\\tauri\\WixTools"
-          
-          # 设置环境变量，启用离线模式
-          $env:NSIS_PATH = "$env:LOCALAPPDATA\\tauri\\NSIS"
-          $env:WIX_PATH = "$env:LOCALAPPDATA\\tauri\\WixTools"
-          $env:TAURI_SKIP_NSIS_DOWNLOAD = "true"
-          $env:TAURI_SKIP_WIX_DOWNLOAD = "true"
-          
-          # 检查环境变量
-          Get-ChildItem env: | Where-Object { $_.Name -like "*TAURI*" -or $_.Name -like "*NSIS*" -or $_.Name -like "*WIX*" }
         shell: powershell
 
       # 关键步骤：使用tauri-action的增强配置
