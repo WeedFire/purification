@@ -127,6 +127,4 @@ jobs:
           releaseBody: '请查看 [RELEASE_NOTES.md] 了解本版本的变更。'
           releaseDraft: true
           prerelease: false
-          args: --release --bundles ${{ matrix.bundles }}
-          # 启用调试模式
-          debug: true
+          args: --bundles ${{ matrix.bundles }}
