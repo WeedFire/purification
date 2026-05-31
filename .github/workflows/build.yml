@@ -1,57 +1,14 @@
-name: Build & Release
+name: Build
 
 on:
   push:
-    branches: [master, main]
     tags: ['v*']
-  pull_request:
-    branches: [master, main]
 
 permissions:
   contents: write
 
 jobs:
-  check:
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: [windows-latest]
-
-    runs-on: ${{ matrix.platform }}
-    defaults:
-      run:
-        working-directory: wisweep
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup Node.js 24
-        uses: actions/setup-node@v5
-        with:
-          node-version: 24
-
-      - name: Install pnpm via npm
-        run: npm install -g pnpm@9
-
-      - name: Install frontend dependencies
-        run: pnpm install --no-frozen-lockfile
-
-      - name: TypeScript check
-        run: pnpm tsc --noEmit
-
-      - name: Install Rust stable
-        run: |
-          rustup update stable
-          rustc --version
-          cargo --version
-
-      - name: Rust check
-        run: cargo check --manifest-path src-tauri/Cargo.toml
-
-  build:
-    needs: check
-    if: startsWith(github.ref, 'refs/tags/v')
+  windows:
     strategy:
       fail-fast: false
       matrix:
@@ -80,8 +37,8 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Build frontend
-        run: pnpm build
+      - name: TypeScript check
+        run: pnpm tsc --noEmit
 
       - name: Install Rust stable with target
         run: |
@@ -90,28 +47,30 @@ jobs:
           rustc --version
           cargo --version
 
-      # 关键步骤：安装Windows构建依赖
+      - name: Rust check
+        run: cargo check --manifest-path src-tauri/Cargo.toml
+
+      - name: Build frontend
+        run: pnpm build
+
       - name: Install Windows Build Tools
         run: |
           choco install visualstudio2022buildtools -y --no-progress --params "--add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.Windows10SDK.19041"
           choco install webview2-runtime -y --no-progress
         shell: powershell
 
-      # 关键步骤：使用tauri-action的增强配置
-      - name: Build Tauri app
+      - name: Build & Release Tauri
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # 设置超时时间
           CARGO_HTTP_TIMEOUT: 600
-          # 启用详细日志
           RUST_LOG: debug
         with:
           projectPath: wisweep
           appName: Wisweep
           tagName: ${{ github.ref_name }}
           releaseName: '智净大师 v__VERSION__'
-          releaseBody: '请查看 [RELEASE_NOTES.md] 了解本版本的变更。'
-          releaseDraft: true
+          releaseBody: '请查看 [RELEASE_NOTES.md](https://github.com/${{ github.repository }}/blob/main/RELEASE_NOTES.md) 了解本版本的变更。'
+          releaseDraft: false
           prerelease: false
           args: --bundles ${{ matrix.bundles }}
