@@ -1,84 +1,44 @@
-import { useState, useMemo, useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useAppStore } from '../../stores';
 import { CategoryLabels, CategoryColors, type FileCategory } from '../../types';
 import { formatSize, formatDate } from '../../utils/format';
 import { 
-  FolderOpen, 
-  ExternalLink, 
-  Trash2, 
-  CheckSquare, 
-  Square,
-  ChevronDown,
-  ChevronRight,
-  Folder,
-  Search,
-  X,
+  FolderOpen, ExternalLink, Trash2, CheckSquare, Square,
+  ChevronDown, ChevronRight, Folder, Search, X,
 } from 'lucide-react';
 import './ResultPage.css';
 
 const PAGE_SIZE = 200;
-const LARGE_DATA_THRESHOLD = 3000; // 大数据量阈值
 
 interface ResultPageProps {
   onStartCleanup: () => void;
 }
 
+interface FileInfoBasic {
+  path: string;
+  size: number;
+  modified_time: number | null;
+  recommendation_reason: string | null;
+  categories: FileCategory[];
+}
+
 export function ResultPage({ onStartCleanup }: ResultPageProps) {
+  // ========== 所有 hooks 必须在最顶部 ==========
   const {
-    scanResult,
-    isLoadingResult,
-    hasScanned,
-    selectedFiles,
-    toggleFileSelection,
-    deselectAllFiles,
-    selectAllInDirectory,
-    openFileLocation,
-    setActiveTab,
+    scanResult, isLoadingResult, hasScanned,
+    selectedFiles, toggleFileSelection, deselectAllFiles,
+    selectAllInDirectory, openFileLocation, setActiveTab,
   } = useAppStore();
 
-  // 加载/渲染中状态
-  const [isRendering, setIsRendering] = useState(false);
-  const renderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastResultRef = useRef<string | null>(null);
-
-  // 清理定时器
-  useEffect(() => {
-    return () => {
-      if (renderTimerRef.current) clearTimeout(renderTimerRef.current);
-    };
-  }, []);
-
-  // 扫描结果加载中：防止白屏
-  // 显示加载状态的条件：
-  // 1. isLoadingResult = 正在获取结果
-  // 2. isRendering = 大数据量渲染中
-  // 3. hasScanned 且 scanResult 为 null = 曾经扫描过但结果还没到
-  const shouldShowLoading = isLoadingResult || isRendering || (hasScanned && !scanResult);
-  
-  if (shouldShowLoading) {
-    return (
-      <div className="result-page loading">
-        <div className="loading-state">
-          <div className="loading-spinner"></div>
-          <h3>正在加载扫描结果...</h3>
-          <p>数据较多，请稍候</p>
-        </div>
-      </div>
-    );
-  }
-
-  // 搜索
   const [searchQuery, setSearchQuery] = useState('');
-  
-  // 展开的分类
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
-  // 每个分类已加载的页数
   const [loadedPages, setLoadedPages] = useState<Record<string, number>>({});
-  
-  // 按分类分组
+
+  // 按分类分组（使用 scanResult.candidates 如果存在）
   const groupedFiles = useMemo(() => {
     const result: Record<string, FileInfoBasic[]> = {};
-    if (!scanResult) return result;
+    if (!scanResult || !scanResult.candidates) return result;
     for (const file of scanResult.candidates) {
       const category = file.categories[0] || 'other';
       if (!result[category]) result[category] = [];
@@ -87,15 +47,13 @@ export function ResultPage({ onStartCleanup }: ResultPageProps) {
     return result;
   }, [scanResult]);
 
-  // 当前选中的分类
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-
   // 当前可见文件列表（含搜索过滤）
   const currentFiles = useMemo(() => {
     if (!scanResult) return [];
+    const candidates = scanResult.candidates || [];
     let files: FileInfoBasic[];
     if (selectedCategory === 'all') {
-      files = scanResult.candidates;
+      files = candidates;
     } else {
       files = groupedFiles[selectedCategory] || [];
     }
@@ -109,21 +67,22 @@ export function ResultPage({ onStartCleanup }: ResultPageProps) {
     return files;
   }, [scanResult, selectedCategory, groupedFiles, searchQuery]);
 
-  // 全选：搜索模式下只选中当前过滤结果
+  // 全选
   const handleSelectAll = useCallback(() => {
     const store = useAppStore.getState();
     const sr = store.scanResult;
     if (!sr) return;
+    const candidates = sr.candidates || [];
     const q = searchQuery.trim();
     const targetPaths = q
       ? currentFiles.map(f => f.path)
-      : sr.candidates.map(f => f.path);
+      : candidates.map(f => f.path);
     const newSet = new Set(store.selectedFiles);
     for (const p of targetPaths) newSet.add(p);
     useAppStore.setState({ selectedFiles: newSet });
   }, [searchQuery, currentFiles]);
 
-  // 全选当前分类：搜索模式下只选中过滤后的
+  // 全选当前分类
   const handleSelectCategory = useCallback(() => {
     const store = useAppStore.getState();
     const targetPaths = currentFiles.map(f => f.path);
@@ -141,7 +100,6 @@ export function ResultPage({ onStartCleanup }: ResultPageProps) {
     });
   }, []);
 
-  // 加载更多
   const loadMore = useCallback((category: string) => {
     setLoadedPages(prev => ({
       ...prev,
@@ -149,43 +107,36 @@ export function ResultPage({ onStartCleanup }: ResultPageProps) {
     }));
   }, []);
 
-  // 获取某分类可见的文件切片
   const getVisibleFiles = useCallback((files: typeof currentFiles, category: string) => {
     const pages = loadedPages[category] || 1;
     return files.slice(0, pages * PAGE_SIZE);
   }, [loadedPages]);
 
-  // 处理大数据量渲染状态（useLayoutEffect 在浏览器绘制前执行，避免白屏闪烁）
-  useLayoutEffect(() => {
-    if (!scanResult) {
-      setIsRendering(false);
-      return;
-    }
-    
-    const resultId = scanResult.scan_id;
-    const fileCount = scanResult.candidates.length;
-    
-    // 如果是新的扫描结果且数据量大，延迟显示列表
-    if (resultId !== lastResultRef.current && fileCount > LARGE_DATA_THRESHOLD) {
-      lastResultRef.current = resultId;
-      
-      // 清除之前的定时器
-      if (renderTimerRef.current) clearTimeout(renderTimerRef.current);
-      
-      // 大数据量：先显示加载状态
-      setIsRendering(true);
-      
-      // 根据数据量调整等待时间：每超过 1000 个文件增加 100ms，最多 1500ms
-      const extraDelay = Math.min(Math.ceil((fileCount - LARGE_DATA_THRESHOLD) / 1000) * 100, 1500);
-      
-      renderTimerRef.current = setTimeout(() => {
-        setIsRendering(false);
-      }, 400 + extraDelay);
-    } else {
-      lastResultRef.current = resultId;
-      setIsRendering(false);
-    }
-  }, [scanResult]);
+  // 计算选中文件总大小
+  const selectedTotalSize = useMemo(() => {
+    if (!scanResult) return 0;
+    const candidates = scanResult.candidates || [];
+    return candidates
+      .filter((f: { path: string }) => selectedFiles.has(f.path))
+      .reduce((sum: number, f: { size: number }) => sum + f.size, 0);
+  }, [scanResult, selectedFiles]);
+
+  const totalCandidates = scanResult?.candidates?.length ?? 0;
+
+  // ========== early returns 放在所有 hooks 之后 ==========
+  const shouldShowLoading = isLoadingResult || (hasScanned && !scanResult);
+  
+  if (shouldShowLoading) {
+    return (
+      <div className="result-page loading">
+        <div className="loading-state">
+          <div className="loading-spinner"></div>
+          <h3>正在加载扫描结果...</h3>
+          <p>数据较多，请稍候</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!scanResult) {
     return (
@@ -207,7 +158,7 @@ export function ResultPage({ onStartCleanup }: ResultPageProps) {
       <div className="page-header">
         <h2>扫描结果</h2>
         <div className="result-summary">
-          <span>发现 <strong>{scanResult.candidates.length}</strong> 个可清理文件</span>
+          <span>发现 <strong>{totalCandidates}</strong> 个可清理文件</span>
           <span>共 <strong>{formatSize(scanResult.total_releasable_size)}</strong></span>
         </div>
       </div>
@@ -240,7 +191,7 @@ export function ResultPage({ onStartCleanup }: ResultPageProps) {
           className={`category-btn ${selectedCategory === 'all' ? 'active' : ''}`}
           onClick={() => setSelectedCategory('all')}
         >
-          全部 ({scanResult.candidates.length})
+          全部 ({totalCandidates})
         </button>
         {Object.entries(scanResult.category_stats).map(([cat, stats]) => (
           <button
@@ -275,18 +226,13 @@ export function ResultPage({ onStartCleanup }: ResultPageProps) {
           disabled={selectedFiles.size === 0}
         >
           <Trash2 size={18} />
-          清理选中 ({formatSize(
-            scanResult.candidates
-              .filter((f: { path: string }) => selectedFiles.has(f.path))
-              .reduce((sum: number, f: { size: number }) => sum + f.size, 0)
-          )})
+          清理选中 ({formatSize(selectedTotalSize)})
         </button>
       </div>
       
       {/* 文件列表 */}
       <div className="file-list">
         {searchQuery.trim() ? (
-          // 搜索模式：扁平显示过滤后的结果（按目录分组），带分页
           <div className="search-results">
             <FilesByDirectory
               files={getVisibleFiles(currentFiles, '_search_')}
@@ -302,7 +248,6 @@ export function ResultPage({ onStartCleanup }: ResultPageProps) {
             )}
           </div>
         ) : selectedCategory === 'all' ? (
-          // 全部类别：按分类分组展示
           Object.entries(groupedFiles).map(([category, files]) => (
             <div key={category} className="category-group">
               <div 
@@ -321,7 +266,7 @@ export function ResultPage({ onStartCleanup }: ResultPageProps) {
                 <span className="category-name">{CategoryLabels[category as FileCategory]}</span>
                 <span className="category-count">{files.length} 个文件</span>
                 <span className="category-size">
-                  {formatSize(files.reduce((sum: number, f: { size: number }) => sum + f.size, 0))}
+                  {formatSize(files.reduce((sum, f) => sum + f.size, 0))}
                 </span>
               </div>
               
@@ -344,7 +289,6 @@ export function ResultPage({ onStartCleanup }: ResultPageProps) {
             </div>
           ))
         ) : selectedCategory && groupedFiles[selectedCategory] ? (
-          // 单一分类：按目录分组展示
           <div className="single-category-files">
             <FilesByDirectory
               files={getVisibleFiles(groupedFiles[selectedCategory], selectedCategory)}
@@ -367,14 +311,6 @@ export function ResultPage({ onStartCleanup }: ResultPageProps) {
 
 // ─── 按目录分组的文件列表 ───
 
-interface FileInfoBasic {
-  path: string;
-  size: number;
-  modified_time: number | null;
-  recommendation_reason: string | null;
-  categories: FileCategory[];
-}
-
 function FilesByDirectory({ files, selectedFiles, onToggle, onSelectDir, onOpenLocation }: {
   files: FileInfoBasic[];
   selectedFiles: Set<string>;
@@ -382,7 +318,6 @@ function FilesByDirectory({ files, selectedFiles, onToggle, onSelectDir, onOpenL
   onSelectDir: (dirPath: string) => void;
   onOpenLocation: (path: string) => void;
 }) {
-  // 按目录分组
   const dirGroups = useMemo(() => {
     const groups: Record<string, FileInfoBasic[]> = {};
     for (const file of files) {
@@ -401,7 +336,6 @@ function FilesByDirectory({ files, selectedFiles, onToggle, onSelectDir, onOpenL
     return parts[parts.length - 1] || cleaned || '(根目录)';
   };
 
-  // 是否所有文件都已选中
   const isAllSelectedInDir = (dirFiles: FileInfoBasic[]): boolean =>
     dirFiles.every((f: FileInfoBasic) => selectedFiles.has(f.path));
 
