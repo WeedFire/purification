@@ -1,4 +1,4 @@
-name: Build & Release
+name: Build
 
 on:
   push:
@@ -56,9 +56,20 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # ── Windows x64 ──
           - platform: windows-latest
             target: x86_64-pc-windows-msvc
             bundles: nsis
+
+          # ── macOS x64 + arm64 (universal) ──
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+            bundles: dmg
+
+          # ── Linux x64 ──
+          - platform: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            bundles: deb appimage
 
     runs-on: ${{ matrix.platform }}
     defaults:
@@ -90,21 +101,32 @@ jobs:
           rustc --version
           cargo --version
 
-      # 关键步骤：安装Windows构建依赖
+      # ── Windows 依赖 ──
       - name: Install Windows Build Tools
+        if: runner.os == 'Windows'
         run: |
           choco install visualstudio2022buildtools -y --no-progress --params "--add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.Windows10SDK.19041"
           choco install webview2-runtime -y --no-progress
         shell: powershell
 
-      # 关键步骤：使用tauri-action的增强配置
+      # ── Linux 依赖 ──
+      - name: Install Linux Dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      # ── macOS universal: 同时加 x86_64 目标 ──
+      - name: Add macOS x86_64 target (universal)
+        if: runner.os == 'macOS'
+        run: rustup target add x86_64-apple-darwin
+
+      # ── 构建 & 发布 ──
       - name: Build & Release Tauri
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # 设置超时时间
           CARGO_HTTP_TIMEOUT: 600
-          # 启用详细日志
           RUST_LOG: debug
         with:
           projectPath: wisweep
@@ -114,4 +136,4 @@ jobs:
           releaseBody: '请查看 [RELEASE_NOTES.md](https://github.com/${{ github.repository }}/blob/main/RELEASE_NOTES.md) 了解本版本的变更。'
           releaseDraft: false
           prerelease: false
-          args: --bundles ${{ matrix.bundles }}
+          args: --bundles ${{ matrix.bundles }} --target ${{ matrix.target }}
