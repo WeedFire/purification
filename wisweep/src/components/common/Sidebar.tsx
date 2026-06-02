@@ -43,7 +43,7 @@ export function Sidebar() {
       </nav>
       
       <div className="sidebar-footer">
-        <p>版本 1.0.0</p>
+        <p>版本 1.0.8</p>
       </div>
     </aside>
   );
