@@ -2,14 +2,13 @@ use std::path::Path;
 
 /// 打开文件所在目录并选中文件
 pub fn open_file_in_explorer(path: &Path) -> Result<(), anyhow::Error> {
-    let path_str = path.to_string_lossy();
-
     #[cfg(windows)]
     {
-        // Windows: 使用 explorer /select,
-        let command = format!("/select,{}", path_str);
+        // Windows: explorer /select, "C:\path\to\file" 必须拆成两个参数
+        // 否则路径含空格时 explorer 无法正确解析
         std::process::Command::new("explorer")
-            .arg(&command)
+            .arg("/select,")
+            .arg(path)
             .spawn()?;
     }
 
