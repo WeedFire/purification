@@ -1,4 +1,5 @@
 import { useAppStore } from '../../stores';
+import { useAppVersion } from '../../hooks/useAppVersion';
 import {
   Scan,
   FileText,
@@ -10,11 +11,14 @@ import './Sidebar.css';
 
 export function Sidebar() {
   const { activeTab, setActiveTab, scanResult } = useAppStore();
+  const version = useAppVersion();
+  const candidateCount = scanResult?.candidates?.length ?? 0;
+  const emptyFolderCount = scanResult?.empty_folders?.length ?? 0;
   
   const navItems = [
     { id: 'scan' as const, label: '开始扫描', icon: Scan },
-    { id: 'result' as const, label: '扫描结果', icon: FileText, badge: scanResult?.candidates.length },
-    { id: 'empty-folders' as const, label: '空文件夹', icon: FolderOpen, badge: scanResult?.empty_folders.length },
+    { id: 'result' as const, label: '扫描结果', icon: FileText, badge: candidateCount },
+    { id: 'empty-folders' as const, label: '空文件夹', icon: FolderOpen, badge: emptyFolderCount },
     { id: 'history' as const, label: '清理历史', icon: History },
     { id: 'settings' as const, label: '设置', icon: Settings },
   ];
@@ -43,7 +47,7 @@ export function Sidebar() {
       </nav>
       
       <div className="sidebar-footer">
-        <p>版本 1.0.9</p>
+        <p>版本 {version}</p>
       </div>
     </aside>
   );

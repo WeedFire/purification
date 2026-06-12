@@ -1,6 +1,6 @@
 [package]
 name = "wisweep"
-version = "1.0.9"
+version = "1.0.10"
 description = "智净大师 - 任意路径智能文件清理系统"
 authors = ["wisweep"]
 edition = "2021"

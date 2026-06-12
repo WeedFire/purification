@@ -1,10 +1,10 @@
 import { useState } from 'react';
+import { useAppVersion } from '../../hooks/useAppVersion';
 import { Info, ExternalLink, Loader2 } from 'lucide-react';
 import './AboutSection.css';
 
-const APP_VERSION = '1.0.9';
-
 export function AboutSection() {
+  const appVersion = useAppVersion();
   const [checking, setChecking] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<{ available: boolean; version?: string; url?: string } | null>(null);
 
@@ -18,7 +18,7 @@ export function AboutSection() {
       if (resp.ok) {
         const data = await resp.json();
         const latestVer = (data.tag_name || '').replace(/^v/, '');
-        if (latestVer > APP_VERSION) {
+        if (latestVer > appVersion) {
           setUpdateInfo({ available: true, version: latestVer, url: data.html_url });
         } else {
           setUpdateInfo({ available: false });
@@ -41,7 +41,7 @@ export function AboutSection() {
       </h3>
       <div className="about-content">
         <div className="about-logo">智净大师</div>
-        <div className="about-version">版本 {APP_VERSION}</div>
+        <div className="about-version">版本 {appVersion}</div>
         <p className="about-desc">
           任意路径智能文件清理系统。不替用户做决定，把清理的决策权完整交还给用户。
         </p>

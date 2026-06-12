@@ -1,7 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Wisweep",
-  "version": "1.0.9",
   "identifier": "com.wisweep.app",
   "build": {
     "beforeDevCommand": "pnpm dev",

@@ -94,8 +94,8 @@
 .folder-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: 10px;
+  padding: 7px 12px;
   background: var(--bg-primary);
   border-bottom: 1px solid var(--border-color);
   transition: background 0.2s;
@@ -232,6 +232,114 @@
 
 .btn-primary:hover:not(:disabled) {
   background: var(--primary-hover);
+}
+
+/* ── 管理员警告 Toast ── */
+
+.toast-warn {
+  background: rgba(237, 137, 54, 0.12);
+  border-color: rgba(237, 137, 54, 0.3);
+  color: #dd6b20;
+}
+
+/* ── 目录分组 ── */
+
+.dir-group {
+  margin-bottom: 8px;
+}
+
+.dir-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.dir-header:hover {
+  background: var(--bg-hover);
+}
+
+.dir-icon {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+
+.dir-name {
+  font-weight: 500;
+  color: var(--text-primary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.dir-count {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.dir-files {
+  padding-left: 0;
+  margin-top: 2px;
+}
+
+.btn-xs {
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--primary-color);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.btn-xs:hover {
+  background: rgba(66, 153, 225, 0.1);
+  border-color: var(--primary-color);
+}
+
+.btn-icon {
+  padding: 6px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.btn-icon:hover {
+  background: var(--bg-tertiary);
+  color: var(--primary-color);
+}
+
+.load-more-btn {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  margin-top: 4px;
+  background: var(--bg-secondary);
+  border: 1px dashed var(--border-color);
+  border-radius: 6px;
+  color: var(--primary-color);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.load-more-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--primary-color);
 }
 
 /* ── 完成提示 Toast ── */
