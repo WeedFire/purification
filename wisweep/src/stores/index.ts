@@ -83,7 +83,7 @@ const defaultScanConfig: ScanConfig = {
   max_depth: null,
   include_hidden: true,
   include_system: false,
-  min_file_size: 1024,
+  min_file_size: 1,
   exclude_patterns: ['*.git/*', '*.svn/*', '*.hg/*'],
   large_file_threshold: 100 * 1024 * 1024,
   temp_file_age_days: 7,

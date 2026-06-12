@@ -1,32 +1,32 @@
-import { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppStore } from '../../stores';
 import { invoke } from '@tauri-apps/api/core';
-import { FolderOpen, CheckSquare, Square, Trash2, CheckCircle } from 'lucide-react';
+import { FolderOpen, CheckSquare, Square, Trash2, CheckCircle, ExternalLink } from 'lucide-react';
 import './EmptyFoldersPage.css';
 
-const LARGE_DATA_THRESHOLD = 2000; // 大数据量阈值
+const PAGE_SIZE = 200;
 
 export function EmptyFoldersPage() {
-  const { scanResult, isLoadingResult, hasScanned, setActiveTab, removeEmptyFolders } = useAppStore();
+  // ========== 所有 hooks 必须在最顶部 ==========
+  const { scanResult, isLoadingResult, hasScanned, setActiveTab, removeEmptyFolders, openFileLocation } = useAppStore();
   const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
   const [done, setDone] = useState(false);
   const [deletedCount, setDeletedCount] = useState(0);
-  const [isRendering, setIsRendering] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const renderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastResultRef = useRef<string | null>(null);
+  const [visiblePages, setVisiblePages] = useState(1);
 
+  // 清理定时器
   useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-      if (renderTimerRef.current) clearTimeout(renderTimerRef.current);
-    };
-  }, []);
+    let timer: ReturnType<typeof setTimeout>;
+    if (done) {
+      timer = setTimeout(() => setDone(false), 3000);
+    }
+    return () => { if (timer) clearTimeout(timer); };
+  }, [done]);
 
-  // 扫描结果加载中：防止白屏
-  const shouldShowLoading = isLoadingResult || isRendering || (hasScanned && !scanResult);
-  
+  // ========== early returns 放在最后 ==========
+  const shouldShowLoading = isLoadingResult || (hasScanned && !scanResult);
+
   if (shouldShowLoading) {
     return (
       <div className="empty-folders-page loading">
@@ -39,38 +39,7 @@ export function EmptyFoldersPage() {
     );
   }
 
-  // 处理大数据量渲染状态（useLayoutEffect 在浏览器绘制前执行，避免白屏闪烁）
-  useLayoutEffect(() => {
-    if (!scanResult) {
-      setIsRendering(false);
-      return;
-    }
-    
-    const resultId = scanResult.scan_id;
-    const folderCount = scanResult.empty_folders.length;
-    
-    // 如果是新的扫描结果且数据量大，延迟显示列表
-    if (resultId !== lastResultRef.current && folderCount > LARGE_DATA_THRESHOLD) {
-      lastResultRef.current = resultId;
-      
-      if (renderTimerRef.current) clearTimeout(renderTimerRef.current);
-      
-      // 大数据量：先显示加载状态
-      setIsRendering(true);
-      
-      // 根据数据量调整等待时间
-      const extraDelay = Math.min(Math.ceil((folderCount - LARGE_DATA_THRESHOLD) / 500) * 100, 1000);
-      
-      renderTimerRef.current = setTimeout(() => {
-        setIsRendering(false);
-      }, 400 + extraDelay);
-    } else {
-      lastResultRef.current = resultId;
-      setIsRendering(false);
-    }
-  }, [scanResult]);
-
-  if (!scanResult || scanResult.empty_folders.length === 0) {
+  if (!scanResult || !scanResult.empty_folders || scanResult.empty_folders.length === 0) {
     return (
       <div className="empty-folders-page empty">
         <div className="empty-state">
@@ -86,6 +55,8 @@ export function EmptyFoldersPage() {
   }
 
   const emptyFolders = scanResult.empty_folders;
+  const visibleFolders = emptyFolders.slice(0, visiblePages * PAGE_SIZE);
+  const hasMore = visibleFolders.length < emptyFolders.length;
 
   const toggleFolder = (path: string) => {
     setSelectedFolders(prev => {
@@ -109,19 +80,11 @@ export function EmptyFoldersPage() {
     const pathsToDelete = Array.from(selectedFolders);
     setDeleting(true);
     try {
-      const failed = await invoke<string[]>('delete_empty_folders', {
-        dirPaths: pathsToDelete,
-      });
-      // 从 scanResult 中移除已删除的
+      const failed = await invoke<string[]>('delete_empty_folders', { dirPaths: pathsToDelete });
       removeEmptyFolders(pathsToDelete);
-      // 显示完成提示
       setDeletedCount(pathsToDelete.length - failed.length);
       setDone(true);
       setSelectedFolders(new Set());
-      // 3 秒后自动关闭
-      timerRef.current = setTimeout(() => {
-        setDone(false);
-      }, 3000);
     } catch (e) {
       alert(`删除失败: ${e}`);
     } finally {
@@ -156,7 +119,6 @@ export function EmptyFoldersPage() {
         </button>
       </div>
 
-      {/* 完成提示 */}
       {done && (
         <div className="toast-success">
           <CheckCircle size={18} />
@@ -165,11 +127,11 @@ export function EmptyFoldersPage() {
       )}
 
       <div className="folder-list">
-        {emptyFolders.map((folder) => (
+        {visibleFolders.map((folder) => (
           <div
             key={folder.path}
             className={`folder-item ${selectedFolders.has(folder.path) ? 'selected' : ''}`}
-            style={{ paddingLeft: `${folder.depth * 24 + 16}px` }}
+            style={{ paddingLeft: `${(folder.depth ?? 0) * 24 + 16}px` }}
           >
             <button className="checkbox-btn" onClick={() => toggleFolder(folder.path)}>
               {selectedFolders.has(folder.path) ? (
@@ -185,13 +147,28 @@ export function EmptyFoldersPage() {
               </div>
               <div className="folder-path">{folder.path}</div>
             </div>
-            {folder.can_merge && <span className="merge-badge">可合并</span>}
             {folder.empty_children_count > 0 && (
               <span className="children-count">{folder.empty_children_count} 个子文件夹</span>
             )}
+            <button
+              className="btn btn-icon"
+              onClick={(e) => { e.stopPropagation(); openFileLocation(folder.path); }}
+              title="打开文件位置"
+            >
+              <ExternalLink size={16} />
+            </button>
           </div>
         ))}
       </div>
+
+      {hasMore && (
+        <button
+          className="load-more-btn"
+          onClick={() => setVisiblePages(p => p + 1)}
+        >
+          显示更多（剩余 {emptyFolders.length - visibleFolders.length} 项）
+        </button>
+      )}
     </div>
   );
 }
