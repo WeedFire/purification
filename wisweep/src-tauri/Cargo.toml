@@ -1,6 +1,6 @@
 [package]
 name = "wisweep"
-version = "1.0.10"
+version = "1.1.0"
 description = "智净大师 - 任意路径智能文件清理系统"
 authors = ["wisweep"]
 edition = "2021"
@@ -34,6 +34,9 @@ parking_lot = "0.12"
 crossbeam = "0.8"
 num_cpus = "1"
 sysinfo = "0.33"
+
+# time 0.3.36+ 与 tauri-utils/cookie 冲突，锁定版本
+time = ">=0.3.35, <0.3.36"
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3", features = ["winbase", "fileapi", "handleapi", "winnt", "processthreadsapi", "restartmanager", "errhandlingapi", "shellapi"] }
