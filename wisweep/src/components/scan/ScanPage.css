@@ -1,6 +1,10 @@
 .scan-page {
   padding: 24px;
-  max-width: 900px;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 .page-header {
@@ -271,4 +275,43 @@
 .btn-large {
   padding: 16px 32px;
   font-size: 16px;
+}
+
+/* 响应式布局 */
+@media (max-width: 768px) {
+  .scan-page {
+    padding: 16px;
+    max-width: 100%;
+  }
+  
+  .path-input-group {
+    flex-direction: column;
+  }
+  
+  .config-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .disk-stats {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .progress-stats {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .progress-actions {
+    flex-direction: column;
+  }
+  
+  .action-section {
+    padding: 16px;
+  }
+  
+  .btn-large {
+    width: 100%;
+    justify-content: center;
+  }
 }
