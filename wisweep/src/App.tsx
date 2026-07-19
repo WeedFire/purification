@@ -64,9 +64,23 @@ function App() {
         return <ScanPage />;
     }
   };
+
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+  }, []);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button === 2) {
+      e.preventDefault();
+    }
+  }, []);
   
   return (
-    <div className="app">
+    <div 
+      className="app" 
+      onContextMenu={handleContextMenu}
+      onMouseDown={handleMouseDown}
+    >
       <Sidebar />
       <main className="main-content">
         {renderContent()}
