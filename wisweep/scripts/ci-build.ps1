@@ -12,6 +12,11 @@ Write-Host "========================================"
 $projectRoot = Split-Path -Parent (Split-Path -Parent $PSCommandPath)
 Set-Location $projectRoot
 
+# 同步版本号 (package.json -> Cargo.toml)
+Write-Host ">>> [0/3] Syncing version..."
+& (Join-Path $projectRoot "scripts\sync-version.ps1")
+if ($LASTEXITCODE -ne 0) { throw "Version sync failed" }
+
 # 安装依赖
 Write-Host ">>> [1/3] Installing dependencies..."
 pnpm install --no-frozen-lockfile

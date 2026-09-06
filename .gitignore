@@ -138,6 +138,6 @@ local.properties
 .cache-main
 .scala_dependencies
 .worksheet
-/.codebuddy/memory/2026-06-02.md
-/.codebuddy/memory/MEMORY.md
 /wisweep/src-tauri/Cargo.lock
+/.codebuddy/
+

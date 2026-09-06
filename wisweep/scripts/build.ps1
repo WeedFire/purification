@@ -40,6 +40,12 @@ if (-not $hasCargo) {
 
 Set-Location $projectRoot
 
+# 阶段 0: 同步版本号 (package.json -> Cargo.toml)
+Write-Host "[0/4] 同步版本号..." -ForegroundColor Yellow
+& (Join-Path $projectRoot "scripts\sync-version.ps1")
+if ($LASTEXITCODE -ne 0) { throw "版本号同步失败" }
+Write-Host "[完成]" -ForegroundColor Green
+
 # 阶段 1: 安装依赖
 Write-Host "[1/4] 安装前端依赖..." -ForegroundColor Yellow
 pnpm install
